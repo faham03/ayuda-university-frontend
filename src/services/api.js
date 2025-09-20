@@ -98,9 +98,6 @@ export async function deleteEvent(id) {
   return res.data;
 }
 
-// ========================
-// RÉCLAMATIONS
-// ========================
 export async function fetchReclamations() {
   const res = await api.get("reclamations/");
   return res.data;
@@ -116,10 +113,7 @@ export async function updateReclamation(id, data) {
   return res.data;
 }
 
-// ========================
-// DEMANDES ADMINISTRATIVES
-// ========================
-// Étudiant: ses demandes
+
 export async function fetchStudentRequests() {
   const res = await api.get("student/");
   return res.data;
@@ -130,7 +124,7 @@ export async function createStudentRequest(data) {
   return res.data;
 }
 
-// Admin: toutes les demandes
+
 export async function fetchAdminRequests() {
   const res = await api.get("admin/");
   return res.data;
@@ -141,26 +135,18 @@ export async function updateRequest(id, data) {
   return res.data;
 }
 
-// ========================
-// ADMIN: GESTION UTILISATEURS
-// ========================
-// Note: Il manque un endpoint pour lister les utilisateurs dans votre backend
-// Vous devrez ajouter dans users/views.py quelque chose comme:
-/*
-class UserListView(generics.ListAPIView):
-    queryset = CustomUser.objects.filter(role='student')
-    serializer_class = UserSerializer
-    permission_classes = [permissions.IsAdminUser]
-*/
 
 export async function fetchUsers() {
-  const res = await api.get("users/"); // Endpoint à créer côté Django
+  const res = await api.get("users/students/");
   return res.data;
 }
 
-// ========================
-// STATISTIQUES ADMIN
-// ========================
+/*export async function fetchUsers() {
+  const res = await api.get("users/"); // Endpoint à créer côté Django
+  return res.data;
+}*/
+
+
 export async function fetchAdminStats() {
   // Endpoint à créer côté Django pour les statistiques
   const res = await api.get("admin/stats/"); 

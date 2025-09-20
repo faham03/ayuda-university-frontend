@@ -16,17 +16,24 @@ import {
   Clock,
   MapPin,
   Search,
-  Filter
+  Filter,
+  Mail,
+  User
 } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import ScheduleFormModal from '../components/ScheduleFormModal';
+import GradeFormModal from '../components/GradeFormModal';
+import ReclamationManagement from '../components/ReclamationManagement';
 import { 
   fetchSchedule, 
   fetchGrades, 
   fetchEvents, 
   fetchReclamations, 
   fetchAdminRequests,
-  deleteSchedule
+  deleteSchedule,
+  fetchUsers,
+  updateRequest,
+  deleteEvent
 } from '../services/api';
 
 export default function AdminDashboard() {
@@ -36,6 +43,8 @@ export default function AdminDashboard() {
   // États pour les modals
   const [showScheduleModal, setShowScheduleModal] = useState(false);
   const [editingSchedule, setEditingSchedule] = useState(null);
+  const [showGradeModal, setShowGradeModal] = useState(false);
+  const [editingGrade, setEditingGrade] = useState(null);
   
   // État pour les statistiques
   const [stats, setStats] = useState({
@@ -53,7 +62,8 @@ export default function AdminDashboard() {
     grades: [],
     events: [],
     reclamations: [],
-    requests: []
+    requests: [],
+    students: []
   });
 
   // Filtres et recherche
@@ -67,18 +77,20 @@ export default function AdminDashboard() {
   useEffect(() => {
     loadDashboardData();
   }, []);
+  
 
   const loadDashboardData = async () => {
     try {
       setLoading(true);
       
       // Charger toutes les données
-      const [scheduleData, gradesData, eventsData, reclamationsData, requestsData] = await Promise.all([
+      const [scheduleData, gradesData, eventsData, reclamationsData, requestsData, studentsData] = await Promise.all([
         fetchSchedule().catch(() => []),
         fetchGrades().catch(() => []),
         fetchEvents().catch(() => []),
         fetchReclamations().catch(() => []),
-        fetchAdminRequests().catch(() => [])
+        fetchAdminRequests().catch(() => []),
+        fetchUsers().catch(() => [])
       ]);
 
       setData({
@@ -86,7 +98,8 @@ export default function AdminDashboard() {
         grades: gradesData || [],
         events: eventsData || [],
         reclamations: reclamationsData || [],
-        requests: requestsData || []
+        requests: requestsData || [],
+        students: studentsData || []
       });
 
       // Calculer les statistiques
@@ -96,7 +109,7 @@ export default function AdminDashboard() {
         : 0;
 
       setStats({
-        students: 145, // À adapter selon vos données
+        students: studentsData?.length || 0,
         courses: scheduleData?.length || 0,
         requests: requestsData?.length || 0,
         events: eventsData?.length || 0,
@@ -136,6 +149,12 @@ export default function AdminDashboard() {
 
   const handleScheduleSuccess = () => {
     loadDashboardData(); // Recharger les données après création/modification
+  };
+
+  // Gestion des notes
+  const handleCreateGrade = () => {
+    setEditingGrade(null);
+    setShowGradeModal(true);
   };
 
   // Filtrage des données
@@ -321,7 +340,10 @@ export default function AdminDashboard() {
                       Ajouter un cours
                     </button>
                     
-                    <button className="flex items-center justify-center px-4 py-3 border-2 border-dashed border-gray-300 rounded-lg text-sm font-medium text-gray-600 hover:border-green-300 hover:text-green-600 focus:outline-none focus:ring-2 focus:ring-green-500">
+                    <button 
+                      onClick={handleCreateGrade}
+                      className="flex items-center justify-center px-4 py-3 border-2 border-dashed border-gray-300 rounded-lg text-sm font-medium text-gray-600 hover:border-green-300 hover:text-green-600 focus:outline-none focus:ring-2 focus:ring-green-500"
+                    >
                       <Plus className="h-5 w-5 mr-2" />
                       Ajouter des notes
                     </button>
@@ -476,27 +498,432 @@ export default function AdminDashboard() {
             </div>
           )}
 
-          {/* Autres sections */}
-          {['grades', 'students', 'requests', 'reclamations', 'events'].includes(activeTab) && (
-            <div className="text-center py-12">
-              <div className="text-gray-400 text-6xl mb-4">🚧</div>
-              <h3 className="text-lg font-medium text-gray-900 mb-2">
-                Section {tabs.find(t => t.id === activeTab)?.label}
-              </h3>
-              <p className="text-gray-600 mb-4">
-                Cette section sera développée avec toutes les fonctionnalités de gestion.
-              </p>
+          {/* Section Notes */}
+          {activeTab === 'grades' && (
+            <div>
+              <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+                <h3 className="text-lg font-medium text-gray-900">Gestion des notes</h3>
+                <button 
+                  onClick={handleCreateGrade}
+                  className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-green-600 hover:bg-green-700"
+                >
+                  <Plus className="h-4 w-4 mr-1" />
+                  Nouvelle note
+                </button>
+              </div>
+              <div className="p-6">
+                <p className="text-gray-600">Interface de gestion des notes en cours de développement...</p>
+              </div>
             </div>
           )}
-        </div>
-      </div>
 
+          {/* Section Étudiants */}
+          {activeTab === 'students' && (
+            <div>
+              <div className="px-6 py-4 border-b border-gray-200">
+                <h3 className="text-lg font-medium text-gray-900">
+                  Liste des étudiants ({data.students.length})
+                </h3>
+              </div>
+              <div className="p-6">
+                {data.students.length === 0 ? (
+                  <div className="text-center py-12">
+                    <Users className="mx-auto h-12 w-12 text-gray-400" />
+                    <h3 className="mt-2 text-sm font-medium text-gray-900">Aucun étudiant trouvé</h3>
+                    <p className="mt-1 text-sm text-gray-500">
+                      Les étudiants inscrits apparaîtront ici
+                    </p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 gap-4">
+                    {data.students.map((student) => (
+                      <div key={student.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-sm transition-shadow">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-4">
+                            <div className="flex-shrink-0">
+                              <div className="h-10 w-10 bg-blue-100 rounded-full flex items-center justify-center">
+                                <User className="h-5 w-5 text-blue-600" />
+                              </div>
+                            </div>
+                            <div className="flex-1">
+                              <div className="flex items-center space-x-2">
+                                <h4 className="font-medium text-gray-900">{student.username}</h4>
+                                <span className="text-sm text-gray-500">ID: {student.id}</span>
+                              </div>
+                              <div className="flex items-center space-x-2 mt-1">
+                                <Mail className="h-4 w-4 text-gray-400" />
+                                <p className="text-sm text-gray-600">{student.email}</p>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <span className={`px-2 py-1 text-xs rounded-full ${
+                              student.role === 'admin' 
+                                ? 'bg-red-100 text-red-800' 
+                                : 'bg-blue-100 text-blue-800'
+                            }`}>
+                              {student.role === 'admin' ? 'Administrateur' : 'Étudiant'}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Section Réclamations */}
+          {activeTab === 'reclamations' && (
+            <div>
+              <div className="px-6 py-4 border-b border-gray-200">
+                <h3 className="text-lg font-medium text-gray-900">Réclamations des étudiants</h3>
+              </div>
+              <div className="p-6">
+                <ReclamationManagement 
+                  reclamations={data.reclamations}
+                  onUpdate={loadDashboardData}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Section Demandes */}
+{activeTab === 'requests' && (
+  <div>
+    <div className="px-6 py-4 border-b border-gray-200">
+      <h3 className="text-lg font-medium text-gray-900">
+        Demandes administratives ({data.requests.length})
+      </h3>
+    </div>
+    <div className="p-6">
+      {data.requests.length === 0 ? (
+        <div className="text-center py-12">
+          <FileText className="mx-auto h-12 w-12 text-gray-400" />
+          <h3 className="mt-2 text-sm font-medium text-gray-900">Aucune demande</h3>
+          <p className="mt-1 text-sm text-gray-500">
+            Les demandes des étudiants apparaîtront ici
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {/* Filtres par statut */}
+          <div className="flex space-x-4 mb-6">
+            <div className="flex items-center space-x-2">
+              <div className="w-3 h-3 bg-yellow-400 rounded-full"></div>
+              <span className="text-sm text-gray-600">
+                En attente ({data.requests.filter(r => r.status === 'pending').length})
+              </span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <div className="w-3 h-3 bg-green-400 rounded-full"></div>
+              <span className="text-sm text-gray-600">
+                Acceptées ({data.requests.filter(r => r.status === 'accepted').length})
+              </span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <div className="w-3 h-3 bg-red-400 rounded-full"></div>
+              <span className="text-sm text-gray-600">
+                Rejetées ({data.requests.filter(r => r.status === 'rejected').length})
+              </span>
+            </div>
+          </div>
+
+          {/* Liste des demandes */}
+          {data.requests.map((request) => (
+            <div key={request.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-sm transition-shadow">
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <div className="flex items-center space-x-2 mb-2">
+                    <FileText className="h-4 w-4 text-blue-500" />
+                    <h4 className="font-medium text-gray-900">{request.request_type}</h4>
+                    <span className={`px-2 py-1 text-xs rounded-full font-medium ${
+                      request.status === 'pending' 
+                        ? 'bg-yellow-100 text-yellow-800' 
+                        : request.status === 'accepted'
+                        ? 'bg-green-100 text-green-800'
+                        : 'bg-red-100 text-red-800'
+                    }`}>
+                      {request.status === 'pending' ? 'En attente' : 
+                       request.status === 'accepted' ? 'Acceptée' : 'Rejetée'}
+                    </span>
+                  </div>
+                  
+                  <div className="flex items-center space-x-4 text-sm text-gray-600 mb-2">
+                    <div className="flex items-center">
+                      <User className="h-4 w-4 mr-1" />
+                      <span>Étudiant ID: {request.student}</span>
+                    </div>
+                    <div className="flex items-center">
+                      <Clock className="h-4 w-4 mr-1" />
+                      <span>{new Date(request.created_at).toLocaleDateString()}</span>
+                    </div>
+                  </div>
+
+                  {request.description && (
+                    <div className="bg-gray-50 rounded p-3 mt-2">
+                      <p className="text-sm text-gray-700">{request.description}</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Actions pour les demandes en attente */}
+                {request.status === 'pending' && (
+                  <div className="flex items-center space-x-2 ml-4">
+                    <button
+                      onClick={async () => {
+                        try {
+                          await updateRequest(request.id, { status: 'accepted' });
+                          await loadDashboardData();
+                        } catch (error) {
+                          alert('Erreur lors de l\'acceptation');
+                        }
+                      }}
+                      className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded text-white bg-green-600 hover:bg-green-700"
+                      title="Accepter la demande"
+                    >
+                      <Check className="h-3 w-3 mr-1" />
+                      Accepter
+                    </button>
+                    
+                    <button
+                      onClick={async () => {
+                        try {
+                          await updateRequest(request.id, { status: 'rejected' });
+                          await loadDashboardData();
+                        } catch (error) {
+                          alert('Erreur lors du rejet');
+                        }
+                      }}
+                      className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded text-white bg-red-600 hover:bg-red-700"
+                      title="Rejeter la demande"
+                    >
+                      <X className="h-3 w-3 mr-1" />
+                      Rejeter
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  </div>
+)}
+
+
+{/* Section Événements */}
+{activeTab === 'events' && (
+  <div>
+    <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+      <h3 className="text-lg font-medium text-gray-900">
+        Gestion des événements ({data.events.length})
+      </h3>
+      <button
+        onClick={() => {
+          // Fonction à créer pour ouvrir le modal d'événement
+          console.log('Créer un événement');
+        }}
+        className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-purple-600 hover:bg-purple-700"
+      >
+        <Plus className="h-4 w-4 mr-1" />
+        Nouvel événement
+      </button>
+    </div>
+    
+    <div className="p-6">
+      {data.events.length === 0 ? (
+        <div className="text-center py-12">
+          <Bell className="mx-auto h-12 w-12 text-gray-400" />
+          <h3 className="mt-2 text-sm font-medium text-gray-900">Aucun événement</h3>
+          <p className="mt-1 text-sm text-gray-500">
+            Commencez par créer votre premier événement
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {/* Filtres par type */}
+          <div className="flex space-x-4 mb-6">
+            <div className="flex items-center space-x-2">
+              <div className="w-3 h-3 bg-blue-400 rounded-full"></div>
+              <span className="text-sm text-gray-600">
+                Académique ({data.events.filter(e => e.event_type === 'ACADEMIC').length})
+              </span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <div className="w-3 h-3 bg-green-400 rounded-full"></div>
+              <span className="text-sm text-gray-600">
+                Sport ({data.events.filter(e => e.event_type === 'SPORT').length})
+              </span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <div className="w-3 h-3 bg-purple-400 rounded-full"></div>
+              <span className="text-sm text-gray-600">
+                Culturel ({data.events.filter(e => e.event_type === 'CULTURAL').length})
+              </span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <div className="w-3 h-3 bg-orange-400 rounded-full"></div>
+              <span className="text-sm text-gray-600">
+                Externe ({data.events.filter(e => e.event_type === 'EXTERNAL').length})
+              </span>
+            </div>
+          </div>
+
+          {/* Liste des événements */}
+          {data.events.map((event) => (
+            <div key={event.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-sm transition-shadow">
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <div className="flex items-center space-x-2 mb-2">
+                    <Bell className="h-4 w-4 text-purple-500" />
+                    <h4 className="font-medium text-gray-900">{event.title}</h4>
+                    <span className={`px-2 py-1 text-xs rounded-full font-medium ${
+                      event.event_type === 'ACADEMIC' 
+                        ? 'bg-blue-100 text-blue-800'
+                        : event.event_type === 'SPORT'
+                        ? 'bg-green-100 text-green-800'
+                        : event.event_type === 'CULTURAL'
+                        ? 'bg-purple-100 text-purple-800'
+                        : 'bg-orange-100 text-orange-800'
+                    }`}>
+                      {event.event_type === 'ACADEMIC' ? 'Académique' :
+                       event.event_type === 'SPORT' ? 'Sport' :
+                       event.event_type === 'CULTURAL' ? 'Culturel' : 'Externe'}
+                    </span>
+                    
+                    {/* Badge statut */}
+                    {event.is_ongoing && (
+                      <span className="px-2 py-1 text-xs rounded-full bg-red-100 text-red-800 font-medium">
+                        En cours
+                      </span>
+                    )}
+                    {event.is_upcoming && !event.is_ongoing && (
+                      <span className="px-2 py-1 text-xs rounded-full bg-yellow-100 text-yellow-800 font-medium">
+                        À venir
+                      </span>
+                    )}
+                    {!event.is_upcoming && !event.is_ongoing && (
+                      <span className="px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-800 font-medium">
+                        Terminé
+                      </span>
+                    )}
+                  </div>
+
+                  {event.description && (
+                    <p className="text-sm text-gray-600 mb-2">{event.description}</p>
+                  )}
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-sm text-gray-500">
+                    <div className="flex items-center">
+                      <MapPin className="h-4 w-4 mr-1" />
+                      <span>{event.location}</span>
+                    </div>
+                    <div className="flex items-center">
+                      <Clock className="h-4 w-4 mr-1" />
+                      <span>
+                        {new Date(event.start_date).toLocaleDateString()} à {new Date(event.start_date).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                      </span>
+                    </div>
+                    <div className="flex items-center">
+                      <Clock className="h-4 w-4 mr-1" />
+                      <span>
+                        Fin: {new Date(event.end_date).toLocaleDateString()} à {new Date(event.end_date).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Actions */}
+                <div className="flex items-center space-x-2 ml-4">
+                  <button
+                    onClick={() => {
+                      // Fonction à créer pour modifier l'événement
+                      console.log('Modifier événement', event.id);
+                    }}
+                    className="p-2 text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
+                    title="Modifier"
+                  >
+                    <Edit3 className="h-4 w-4" />
+                  </button>
+                  <button
+                    onClick={async () => {
+                      if (window.confirm('Êtes-vous sûr de vouloir supprimer cet événement ?')) {
+                        try {
+                          await deleteEvent(event.id);
+                          await loadDashboardData();
+                        } catch (error) {
+                          alert('Erreur lors de la suppression');
+                        }
+                      }
+                    }}
+                    className="p-2 text-red-600 hover:bg-red-50 rounded-md transition-colors"
+                    title="Supprimer"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Statistiques des événements */}
+      {data.events.length > 0 && (
+        <div className="mt-8 bg-gray-50 rounded-lg p-4">
+          <h4 className="text-sm font-medium text-gray-900 mb-3">Statistiques des événements</h4>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div className="text-center">
+              <div className="text-2xl font-bold text-blue-600">
+                {data.events.filter(e => e.event_type === 'ACADEMIC').length}
+              </div>
+              <div className="text-xs text-gray-500">Académiques</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-green-600">
+                {data.events.filter(e => e.event_type === 'SPORT').length}
+              </div>
+              <div className="text-xs text-gray-500">Sport</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-purple-600">
+                {data.events.filter(e => e.event_type === 'CULTURAL').length}
+              </div>
+              <div className="text-xs text-gray-500">Culturels</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-orange-600">
+                {data.events.filter(e => e.event_type === 'EXTERNAL').length}
+              </div>
+              <div className="text-xs text-gray-500">Externes</div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  </div>
+)}
+
+</div>
+ </div>
+      
       {/* Modal de création/modification de cours */}
       <ScheduleFormModal
         isOpen={showScheduleModal}
         onClose={() => setShowScheduleModal(false)}
         onSuccess={handleScheduleSuccess}
         editingSchedule={editingSchedule}
+      />
+
+      {/* Modal de création/modification de notes */}
+      <GradeFormModal
+        isOpen={showGradeModal}
+        onClose={() => setShowGradeModal(false)}
+        onSuccess={loadDashboardData}
+        editingGrade={editingGrade}
       />
     </div>
   );

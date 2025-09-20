@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X, BookOpen, User, Award } from 'lucide-react';
 import { createGrade, updateGrade } from '../services/api';
-import GradeFormModal from '../components/GradeFormModal';
-import ReclamationManagement from '../components/ReclamationManagement';
 
 export default function GradeFormModal({ isOpen, onClose, onSuccess, editingGrade = null }) {
   const [formData, setFormData] = useState({

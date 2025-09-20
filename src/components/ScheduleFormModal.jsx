@@ -308,7 +308,7 @@ export default function ScheduleFormModal({ isOpen, onClose, onSuccess, editingS
               value={formData.professeur}
               onChange={handleInputChange}
               className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-              placeholder="Ex: Dr. Martin Dupont"
+              placeholder="Ex: Dr. Mme SOGNON"
               disabled={loading}
             />
           </div>
